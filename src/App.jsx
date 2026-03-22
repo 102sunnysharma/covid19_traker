@@ -19,11 +19,9 @@ function App() {
   const [countryInfo, setCountryInfo] = useState({});
   const [tableData, setTableData] = useState([]);
 
-  // ✅ Map states
   const [mapCenter, setMapCenter] = useState([20, 0]);
   const [mapZoom, setMapZoom] = useState(2);
 
-  // 🌍 Load worldwide data
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("https://disease.sh/v3/covid-19/all");
@@ -33,7 +31,6 @@ function App() {
     fetchData();
   }, []);
 
-  // 🌍 Load countries
   useEffect(() => {
     const getCountriesData = async () => {
       const res = await fetch("https://disease.sh/v3/covid-19/countries");
@@ -53,7 +50,6 @@ function App() {
     getCountriesData();
   }, []);
 
-  // 🌍 Dropdown change
   const onCountryChange = async (event) => {
     const countryCode = event.target.value;
     setCountry(countryCode);
@@ -68,7 +64,6 @@ function App() {
 
     setCountryInfo(data);
 
-    // ✅ Safe map update
     if (countryCode === "worldwide") {
       setMapCenter([20, 0]);
       setMapZoom(2);
