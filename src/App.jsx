@@ -19,35 +19,41 @@ function App() {
   const [countryInfo, setCountryInfo] = useState({});
   const [tableData, setTableData] = useState([]);
 
+  // ✅ Map states
+  const [mapCenter, setMapCenter] = useState([20, 0]);
+  const [mapZoom, setMapZoom] = useState(2);
+
+  // 🌍 Load worldwide data
   useEffect(() => {
-    fetch("https://disease.sh/v3/covid-19/all")
-      .then((response) => response.json())
-      .then((data) => {
-        setCountryInfo(data);
-      });
+    const fetchData = async () => {
+      const res = await fetch("https://disease.sh/v3/covid-19/all");
+      const data = await res.json();
+      setCountryInfo(data);
+    };
+    fetchData();
   }, []);
 
+  // 🌍 Load countries
   useEffect(() => {
     const getCountriesData = async () => {
-      const response = await fetch("https://disease.sh/v3/covid-19/countries");
-      const data = await response.json();
+      const res = await fetch("https://disease.sh/v3/covid-19/countries");
+      const data = await res.json();
 
       const countries = data
-        .filter((country) => country.countryInfo.iso2) // remove null iso2
-        .map((country) => ({
-          name: country.country,
-          value: country.countryInfo.iso2,
+        .filter((c) => c.countryInfo.iso2)
+        .map((c) => ({
+          name: c.country,
+          value: c.countryInfo.iso2,
         }));
 
-
-      const sortedData = sortData(data);
-      setTableData(sortedData);
       setCountries(countries);
+      setTableData(sortData(data));
     };
 
     getCountriesData();
   }, []);
 
+  // 🌍 Dropdown change
   const onCountryChange = async (event) => {
     const countryCode = event.target.value;
     setCountry(countryCode);
@@ -57,40 +63,48 @@ function App() {
         ? "https://disease.sh/v3/covid-19/all"
         : `https://disease.sh/v3/covid-19/countries/${countryCode}`;
 
-    await fetch(url)
-      .then((response) => response.json())
-      .then((data) => {
-        // all of the data....
-        // from the country response
-        setCountryInfo(data);
-      });
+    const res = await fetch(url);
+    const data = await res.json();
+
+    setCountryInfo(data);
+
+    // ✅ Safe map update
+    if (countryCode === "worldwide") {
+      setMapCenter([20, 0]);
+      setMapZoom(2);
+    } else if (data?.countryInfo) {
+      setMapCenter([
+        data.countryInfo.lat,
+        data.countryInfo.long,
+      ]);
+      setMapZoom(4);
+    }
   };
 
   return (
     <div className="app">
+      {/* LEFT */}
       <div className="app__left">
         <div className="app__header">
           <h1>COVID-19 TRACKER</h1>
 
           <FormControl className="app_dropdown">
-            <Select
-              variant="outlined"
-              value={country}
-              onChange={onCountryChange}
-            >
+            <Select value={country} onChange={onCountryChange}>
               <MenuItem value="worldwide">Worldwide</MenuItem>
-              {countries.map((country) => (
-                <MenuItem key={country.value} value={country.value}>
-                  {country.name}
+
+              {countries.map((c) => (
+                <MenuItem key={c.value} value={c.value}>
+                  {c.name}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         </div>
 
+        {/* STATS */}
         <div className="app__stats">
           <InfoBox
-            title="Coranavirus Cases"
+            title="Coronavirus Cases"
             cases={countryInfo.todayCases}
             total={countryInfo.cases}
           />
@@ -106,19 +120,18 @@ function App() {
           />
         </div>
 
-        <Map />
+        {/* MAP */}
+        <Map center={mapCenter} zoom={mapZoom} />
       </div>
 
-      {/* app right part */}
-
+      {/* RIGHT */}
       <Card className="app__right">
         <CardContent>
           <h3>Live Cases by Country</h3>
           <Table countries={tableData} />
 
           <h3>Worldwide new cases</h3>
-          <LineGraph/>
-          {/* Graph */}
+          <LineGraph />
         </CardContent>
       </Card>
     </div>
